@@ -11,17 +11,22 @@ from cosmic_ray.work_db import WorkDB
 log = logging.getLogger()
 
 
-def all_work_items(module_paths, operator_names, python_version):
+def all_work_items(module_paths, operator_names, python_version, filters=None):
     "Iterable of all WorkItems for the given inputs."
     for module_path in module_paths:
         module_ast = get_ast(
             module_path, python_version=python_version)
 
+        nodes = list(ast_nodes(module_ast))
+        if filters is not None:
+            if module_path not in filter:
+                continue
+            nodes = filter_nodes(nodes, filter[module_path])
 
         for op_name in operator_names:
             operator = get_operator(op_name)(python_version)
             occurrence = 0
-            for node in ast_nodes(module_ast):
+            for node in nodes:
                 for start_pos, end_pos in operator.mutation_positions(node):
                     yield WorkItem(
                         job_id=uuid.uuid4().hex,
@@ -34,7 +39,7 @@ def all_work_items(module_paths, operator_names, python_version):
                     occurrence += 1
 
 
-def init(module_paths, work_db: WorkDB, config):
+def init(module_paths, work_db: WorkDB, config, filters=None):
     """Clear and initialize a work-db with work items.
 
     Any existing data in the work-db will be cleared and replaced with entirely
@@ -45,6 +50,7 @@ def init(module_paths, work_db: WorkDB, config):
       module_paths: iterable of pathlib.Paths of modules to mutate.
       work_db: A `WorkDB` instance into which the work orders will be saved.
       config: The configuration for the new session.
+      filters: dict of file:lines to keep
     """
 
     operator_names = list(cosmic_ray.plugins.operator_names())
@@ -56,4 +62,5 @@ def init(module_paths, work_db: WorkDB, config):
         all_work_items(
             module_paths, 
             operator_names, 
-            config.python_version))
+            config.python_version,
+            filters=filters))
