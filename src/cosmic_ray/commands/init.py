@@ -10,6 +10,12 @@ from cosmic_ray.work_db import WorkDB
 
 log = logging.getLogger()
 
+def filter_nodes(nodes, lines):
+    res = []
+    for node in nodes:
+        if lines & set(range(node.start_pos[0], node.end_pos[0] + 1)):
+            res.append(node)
+    return res
 
 def all_work_items(module_paths, operator_names, python_version, filters=None):
     "Iterable of all WorkItems for the given inputs."
@@ -19,9 +25,9 @@ def all_work_items(module_paths, operator_names, python_version, filters=None):
 
         nodes = list(ast_nodes(module_ast))
         if filters is not None:
-            if module_path not in filter:
+            if module_path not in filters:
                 continue
-            nodes = filter_nodes(nodes, filter[module_path])
+            nodes = filter_nodes(nodes, filters[module_path])
 
         for op_name in operator_names:
             operator = get_operator(op_name)(python_version)

@@ -1,7 +1,10 @@
 """Functions related to finding modules for testing."""
 
+from collections import defaultdict
 import glob
 from pathlib import Path
+import re
+import subprocess
 
 
 def find_modules(module_path):
@@ -33,7 +36,7 @@ def filter_paths(paths, excluded_paths):
                    for f in glob.glob(excluded_path, recursive=True))
     return set(paths) - excluded
 
-def git_filter(config):
+def git_filters(config):
     branch = config.get("git-branch")
     if branch is None:
         return
@@ -47,13 +50,13 @@ def git_filter(config):
     regex = re.compile(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@.*")
     current_file = None
     res = defaultdict(set)
-    for line in diff.stdout.decode('utf-8').split('\n'):
-        if line.startswith("@@"):
-            m = regex.match(line)
+    for diff_line in diff.stdout.decode('utf-8').split('\n'):
+        if diff_line.startswith("@@"):
+            m = regex.match(diff_line)
             start = int(m.group(1))
             lenght = int(m.group(2)) if m.group(2) is not None else 1
-            for line in range(start, stalt + lenght):
+            for line in range(start, start + lenght):
                 res[current_file].add(line)
-        if line.startswith("+++ b/"):
-            current_file = PosixPath(line[6:])
+        if diff_line.startswith("+++ b/"):
+            current_file = Path(diff_line[6:])
     return res

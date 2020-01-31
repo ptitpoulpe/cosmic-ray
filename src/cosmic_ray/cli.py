@@ -78,6 +78,8 @@ def init(config_file, session_file):
     modules = cosmic_ray.modules.filter_paths(
         modules, cfg.get('exclude-modules', ()))
 
+    filters = cosmic_ray.modules.git_filters(cfg)
+
     if log.isEnabledFor(logging.INFO):
         log.info('Modules discovered:')
         per_dir = defaultdict(list)
@@ -87,7 +89,7 @@ def init(config_file, session_file):
             log.info(' - %s: %s', directory, ', '.join(sorted(files)))
 
     with use_db(session_file) as database:
-        cosmic_ray.commands.init(modules, database, cfg)
+        cosmic_ray.commands.init(modules, database, cfg, filters=filters)
 
     sys.exit(ExitCode.OK)
 
